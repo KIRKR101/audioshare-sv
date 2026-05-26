@@ -18,9 +18,13 @@ export const GET: RequestHandler = async ({ params, request }) => {
 	}
 	const metadataPath = path.join(audioDir, `${id}.metadata.json`);
 
-	let metadata: any;
+	interface AudioMetadata {
+		fileExtension: string;
+		mimetype: string;
+	}
+	let metadata: AudioMetadata;
 	try {
-		metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'));
+		metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8')) as AudioMetadata;
 	} catch {
 		return new Response(JSON.stringify({ error: 'File metadata not found.' }), {
 			status: 404,
@@ -28,7 +32,7 @@ export const GET: RequestHandler = async ({ params, request }) => {
 		});
 	}
 
-	const audioPath = path.join(audioDir, `${id}.${metadata.fileExtension}`);
+	const audioPath = path.join(audioDir, `${id}.${String(metadata.fileExtension)}`);
 
 	try {
 		const stat = fs.statSync(audioPath);
@@ -43,23 +47,25 @@ export const GET: RequestHandler = async ({ params, request }) => {
 
 			const fileStream = fs.createReadStream(audioPath, { start, end });
 
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			return new Response(fileStream as any, {
 				status: 206,
 				headers: {
 					'Content-Range': `bytes ${start}-${end}/${fileSize}`,
 					'Accept-Ranges': 'bytes',
 					'Content-Length': String(chunkSize),
-					'Content-Type': metadata.mimetype || 'audio/mpeg'
+					'Content-Type': String(metadata.mimetype || 'audio/mpeg')
 				}
 			});
 		}
 
 		const fileStream = fs.createReadStream(audioPath);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		return new Response(fileStream as any, {
 			status: 200,
 			headers: {
 				'Content-Length': String(fileSize),
-				'Content-Type': metadata.mimetype || 'audio/mpeg'
+				'Content-Type': String(metadata.mimetype || 'audio/mpeg')
 			}
 		});
 	} catch {

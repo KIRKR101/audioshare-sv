@@ -29,9 +29,21 @@ const audioDir = path.join(process.cwd(), 'data', 'audio');
 const albumArtDir = path.join(process.cwd(), 'data', 'album-art');
 const audioListPath = path.join(process.cwd(), 'data', 'audio_files.txt');
 
-function removeImageDataFromNative(nativeMetadata: any, codec: string) {
+interface NativeTag {
+	id?: string;
+	name?: string;
+	value?: unknown;
+}
+
+interface NativeMetadata {
+	[format: string]: NativeTag[];
+}
+
+function removeImageDataFromNative(
+	nativeMetadata: NativeMetadata | undefined
+): NativeMetadata | undefined {
 	if (!nativeMetadata) return nativeMetadata;
-	const cleaned: Record<string, any[]> = {};
+	const cleaned: Record<string, NativeTag[]> = {};
 	const tagsToRemove: Record<string, string[]> = {
 		id3v2: ['APIC'],
 		vorbis: ['METADATA_BLOCK_PICTURE'],
@@ -40,10 +52,10 @@ function removeImageDataFromNative(nativeMetadata: any, codec: string) {
 
 	for (const format in nativeMetadata) {
 		const removeIds = tagsToRemove[format] || [];
-		cleaned[format] = nativeMetadata[format].filter((tag: any) => {
-			if (format === 'id3v2' && removeIds.includes(tag.id)) return false;
-			if (format === 'vorbis' && removeIds.includes(tag.name)) return false;
-			if (format === 'iTunes' && removeIds.includes(tag.id)) return false;
+		cleaned[format] = nativeMetadata[format].filter((tag: NativeTag) => {
+			if (format === 'id3v2' && removeIds.includes(tag.id!)) return false;
+			if (format === 'vorbis' && removeIds.includes(tag.name!)) return false;
+			if (format === 'iTunes' && removeIds.includes(tag.id!)) return false;
 			if (tag.id) {
 				const tagIdLower = tag.id.toLowerCase();
 				if (
@@ -53,7 +65,7 @@ function removeImageDataFromNative(nativeMetadata: any, codec: string) {
 				)
 					return false;
 			}
-			if (Array.isArray(tag.value) && tag.value.every((item: any) => typeof item === 'number'))
+			if (Array.isArray(tag.value) && tag.value.every((item: unknown) => typeof item === 'number'))
 				return false;
 			if (typeof tag.value === 'string' && tag.value.length > 1000) return false;
 			return true;
@@ -92,14 +104,15 @@ async function processAlbumArtFromBuffer(buffer: Buffer, format: string): Promis
 	}
 }
 
-async function storeMetadata(fileId: string, metadata: any) {
+async function storeMetadata(fileId: string, metadata: Record<string, unknown>) {
 	await fsp.mkdir(audioDir, { recursive: true });
 	const metadataPath = path.join(audioDir, `${fileId}.metadata.json`);
 	await fsp.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
 }
 
-async function appendToAudioList(metadata: any) {
-	const entry = `${metadata.common?.artist || 'Unknown Artist'} - ${metadata.common?.title || metadata.originalName} - ${metadata.originalName || 'Unknown Filename'} | /audio/${metadata.fileId}\n`;
+async function appendToAudioList(metadata: Record<string, unknown>) {
+	const common = metadata.common as Record<string, unknown> | undefined;
+	const entry = `${String(common?.artist || 'Unknown Artist')} - ${String(common?.title || metadata.originalName)} - ${String(metadata.originalName || 'Unknown Filename')} | /audio/${String(metadata.fileId)}\n`;
 	await fsp.appendFile(audioListPath, entry, 'utf-8');
 }
 
@@ -126,12 +139,17 @@ export const POST: RequestHandler = async ({ request }) => {
 		const formData = await request.formData();
 		const uploadedFile = formData.get('file') as File | null;
 
+		if (!uploadedFile) {
+			return new Response(JSON.stringify({ error: 'No file uploaded.' }), {
+				status: 400,
+				headers: { 'Content-Type': 'application/json' }
+			});
+		}
+
 		if (
-			!uploadedFile ||
-			!(
-				uploadedFile instanceof (globalThis as any).File ||
-				uploadedFile?.constructor?.name === 'File'
-			)
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			!(uploadedFile instanceof (globalThis as any).File) &&
+			uploadedFile?.constructor?.name !== 'File'
 		) {
 			return new Response(JSON.stringify({ error: 'No file uploaded.' }), {
 				status: 400,
@@ -163,7 +181,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		const metadata = await parseBuffer(new Uint8Array(fileBuffer), {
 			mimeType: fileMimeType,
 			duration: true
-		} as any);
+		} as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
 		let albumArt: string | null = null;
 		if (metadata?.common?.picture && metadata.common.picture.length > 0) {
@@ -175,10 +193,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		const commonWithoutPicture = { ...metadata.common };
 		delete commonWithoutPicture.picture;
-		const nativeWithoutImage = removeImageDataFromNative(
-			metadata.native,
-			metadata.format?.codec ?? ''
-		);
+		const nativeWithoutImage = removeImageDataFromNative(metadata.native);
 
 		const fileMetadata = {
 			fileId,
@@ -226,22 +241,25 @@ export const POST: RequestHandler = async ({ request }) => {
 			status: 200,
 			headers: { 'Content-Type': 'application/json' }
 		});
-	} catch (err: any) {
-		console.error('[ERROR] Upload failed:', err.message || err);
+	} catch (err: unknown) {
+		const error = err as { message?: string };
+		console.error('[ERROR] Upload failed:', error.message || err);
 
 		if (audioFilePath && fs.existsSync(audioFilePath)) {
 			try {
 				await fsp.unlink(audioFilePath);
-			} catch {}
+			} catch {
+				/* cleanup error ignored */
+			}
 		}
 
-		const status = err.message?.includes('Unsupported file type')
+		const status = error.message?.includes('Unsupported file type')
 			? 415
-			: err.message === 'File too large'
+			: error.message === 'File too large'
 				? 413
 				: 500;
 
-		const message = status === 500 ? 'Internal server error' : err.message || 'Upload failed';
+		const message = status === 500 ? 'Internal server error' : error.message || 'Upload failed';
 
 		return new Response(JSON.stringify({ error: message }), {
 			status,

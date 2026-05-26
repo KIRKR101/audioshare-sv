@@ -21,6 +21,7 @@
 		GripVertical,
 		Trash2
 	} from '@lucide/svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 
 	interface Track {
 		fileId: string;
@@ -101,7 +102,6 @@
 	let dragOverIndex = $state<number | null>(null);
 
 	let playerCardEl = $state<HTMLElement | null>(null);
-	let queueCardEl = $state<HTMLElement | null>(null);
 	let queueMaxHeight = $state(0);
 
 	$effect(() => {
@@ -139,7 +139,7 @@
 		return `${m}:${s}`;
 	}
 
-	function categorizeTracks(excludeIds: Set<string>): {
+	function categorizeTracks(excludeIds: SvelteSet<string>): {
 		sameArtist: Track[];
 		sameAlbum: Track[];
 		rest: Track[];
@@ -168,7 +168,7 @@
 	}
 
 	function generateQueue(): Track[] {
-		const excludeIds = new Set([currentTrack.fileId]);
+		const excludeIds = new SvelteSet([currentTrack.fileId]);
 		for (const q of queue) excludeIds.add(q.fileId);
 
 		const { sameArtist, sameAlbum, rest } = categorizeTracks(excludeIds);
@@ -206,7 +206,7 @@
 	}
 
 	function refillQueue() {
-		const existingIds = new Set(queue.map((t) => t.fileId));
+		const existingIds = new SvelteSet(queue.map((t) => t.fileId));
 		existingIds.add(currentTrack.fileId);
 		for (const h of playHistory) existingIds.add(h.fileId);
 
@@ -254,7 +254,7 @@
 			return;
 		}
 		const q = searchQuery.toLowerCase();
-		const queueIds = new Set(queue.map((t) => t.fileId));
+		const queueIds = new SvelteSet(queue.map((t) => t.fileId));
 		queueIds.add(currentTrack.fileId);
 		searchResults = allTracks.filter(
 			(t) =>
@@ -580,11 +580,13 @@
 			case 'Digit9':
 			case 'Numpad9':
 				e.preventDefault();
-				const digit = parseInt(e.code.at(-1)!);
-				const ratio = digit / 10;
-				a.currentTime = a.duration * ratio;
-				playerProgress = a.currentTime;
-				seekValue = a.currentTime;
+				{
+					const digit = parseInt(e.code.at(-1)!);
+					const ratio = digit / 10;
+					a.currentTime = a.duration * ratio;
+					playerProgress = a.currentTime;
+					seekValue = a.currentTime;
+				}
 				break;
 			case 'Comma':
 				e.preventDefault();
@@ -710,7 +712,7 @@
 							max={duration || 0}
 							step={0.1}
 							onpointerdown={() => (isSeeking = true)}
-							onValueCommit={handleSeekCommit as any}
+							onValueCommit={handleSeekCommit}
 							class="[&_[data-slot=slider-range]]:bg-white [&_[data-slot=slider-thumb]]:h-3 [&_[data-slot=slider-thumb]]:w-3 [&_[data-slot=slider-thumb]]:border-none [&_[data-slot=slider-thumb]]:bg-foreground [&_[data-slot=slider-track]]:h-1 [&_[data-slot=slider-track]]:bg-white/[0.1]"
 						/>
 
@@ -779,7 +781,7 @@
 										bind:value={volumeValue}
 										max={1}
 										step={0.01}
-										onValueChange={handleVolumeChange as any}
+										onValueChange={handleVolumeChange}
 										class="[&_[data-slot=slider-range]]:bg-white [&_[data-slot=slider-thumb]]:h-3 [&_[data-slot=slider-thumb]]:w-3 [&_[data-slot=slider-thumb]]:border-none [&_[data-slot=slider-thumb]]:bg-foreground [&_[data-slot=slider-track]]:h-1 [&_[data-slot=slider-track]]:bg-white/[0.1]"
 									/>
 								</div>
@@ -863,7 +865,7 @@
 								bind:this={resultsContainerEl}
 							>
 								{#if searchResults.length > 0}
-									{#each searchResults as result, i}
+									{#each searchResults as result, i (result.fileId)}
 										<div
 											class="flex cursor-pointer items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-white/[0.04] {i ===
 											selectedSearchIndex
@@ -895,7 +897,7 @@
 				<div class="queue-scrollbar flex-1 overflow-y-auto">
 					{#if queue.length > 0}
 						<div class="py-1">
-							{#each queue as track, index}
+							{#each queue as track, index (track.fileId)}
 								<div
 									draggable="true"
 									class="group flex cursor-pointer items-center gap-2 px-4 py-2.5 transition-colors duration-150 {dragIndex ===

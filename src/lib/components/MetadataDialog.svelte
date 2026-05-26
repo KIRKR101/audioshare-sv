@@ -3,6 +3,36 @@
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import { X, Download } from '@lucide/svelte';
 
+	interface NativeTag {
+		id?: string;
+		name?: string;
+		value?: unknown;
+	}
+
+	interface FileMetadata {
+		originalName?: string;
+		common?: {
+			title?: string;
+			artist?: string;
+			album?: string;
+			year?: number;
+			genre?: string[];
+			track?: { no?: number };
+			disk?: { no?: number };
+			composer?: string[];
+		};
+		format?: {
+			container?: string;
+			codec?: string;
+			lossless?: boolean;
+			bitrate?: number;
+			sampleRate?: number;
+			channels?: number;
+			duration?: number;
+		};
+		native?: Record<string, NativeTag[]>;
+	}
+
 	let {
 		isOpen,
 		onClose,
@@ -11,11 +41,11 @@
 	}: {
 		isOpen: boolean;
 		onClose: () => void;
-		fileMetadata: Record<string, any>;
+		fileMetadata: FileMetadata;
 		fileName: string;
 	} = $props();
 
-	function getValue(value: any, unknownText = 'Unknown'): string {
+	function getValue(value: unknown, unknownText = 'Unknown'): string {
 		if (value == null || value === '') return unknownText;
 		if (Array.isArray(value)) return value.length > 0 ? value.join(', ') : unknownText;
 		return String(value);
@@ -81,7 +111,9 @@
 					<table class="w-full font-mono text-xs">
 						<tbody>
 							<tr class="border-b border-white/[0.06]">
-								<td class="py-2.5 pr-4 text-xs font-semibold text-neutral-400" colspan="2"> Basic </td>
+								<td class="py-2.5 pr-4 text-xs font-semibold text-neutral-400" colspan="2">
+									Basic
+								</td>
 							</tr>
 							{#if fileMetadata.originalName}
 								<tr class="border-b border-white/[0.03]">
@@ -157,7 +189,9 @@
 							{/if}
 							<tr class="border-b border-white/[0.03]">
 								<td class="py-1.5 pr-4 text-neutral-500">Lossless</td>
-								<td class="py-1.5 text-neutral-200">{fileMetadata.format?.lossless ? 'Yes' : 'No'}</td>
+								<td class="py-1.5 text-neutral-200"
+									>{fileMetadata.format?.lossless ? 'Yes' : 'No'}</td
+								>
 							</tr>
 							{#if fileMetadata.format?.bitrate}
 								<tr class="border-b border-white/[0.03]">
@@ -184,7 +218,8 @@
 							{#if fileMetadata.format?.duration}
 								<tr class="border-b border-white/[0.03]">
 									<td class="py-1.5 pr-4 text-neutral-500">Duration</td>
-									<td class="py-1.5 text-neutral-200">{formatTime(fileMetadata.format.duration)}</td>
+									<td class="py-1.5 text-neutral-200">{formatTime(fileMetadata.format.duration)}</td
+									>
 								</tr>
 							{/if}
 
@@ -194,8 +229,8 @@
 										Native Tags
 									</td>
 								</tr>
-								{#each Object.keys(fileMetadata.native) as formatKey}
-									{#each fileMetadata.native[formatKey] as tag, i}
+								{#each Object.keys(fileMetadata.native) as formatKey (formatKey)}
+									{#each fileMetadata.native[formatKey] ?? [] as tag, i (`${formatKey}-${tag.id ?? tag.name ?? i}`)}
 										<tr class="border-b border-white/[0.03]">
 											<td class="py-1.5 pr-4 text-neutral-500"
 												>{tag.id || tag.name || `Tag ${i + 1}`}</td

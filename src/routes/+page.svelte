@@ -38,7 +38,7 @@
 			const art =
 				parsed.common.picture && parsed.common.picture.length > 0
 					? URL.createObjectURL(
-							new Blob([parsed.common.picture[0].data as any], {
+							new Blob([parsed.common.picture[0].data as BlobPart], {
 								type: parsed.common.picture[0].format
 							})
 						)
@@ -109,7 +109,9 @@
 				try {
 					const errData = JSON.parse(xhr.response);
 					if (errData?.error) msg = errData.error;
-				} catch {}
+				} catch {
+					/* intentionally empty */
+				}
 				toast.error(msg);
 			}
 		};
@@ -291,6 +293,7 @@
 					class="mt-4 flex items-center gap-2.5 rounded-lg border border-white/[0.04] bg-white/[0.015] p-3"
 				>
 					<Check class="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+					<!-- eslint-disable svelte/no-navigation-without-resolve -->
 					<a
 						href={shareableLink}
 						target="_blank"

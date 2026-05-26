@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
 	import { Menu, X } from '@lucide/svelte';
@@ -37,7 +37,7 @@
 	<div class="mx-auto flex h-full max-w-6xl items-center justify-between px-4 sm:px-6">
 		<div class="flex h-full items-center gap-8">
 			<a
-				href="/"
+				href={resolve('/')}
 				class="flex cursor-pointer items-center gap-2.5 text-sm font-bold tracking-[-0.04em] text-foreground"
 			>
 				<svg
@@ -55,7 +55,7 @@
 			</a>
 			<nav class="hidden h-full items-center gap-6 md:flex">
 				<a
-					href="/"
+					href={resolve('/')}
 					class="relative flex h-full cursor-pointer items-center text-sm font-medium transition-colors duration-150 {isActive(
 						'/'
 					)
@@ -69,7 +69,7 @@
 					{/if}
 				</a>
 				<a
-					href="/archive"
+					href={resolve('/archive')}
 					class="relative flex h-full cursor-pointer items-center text-sm font-medium transition-colors duration-150 {isActive(
 						'/archive'
 					)
@@ -83,7 +83,7 @@
 					{/if}
 				</a>
 				<a
-					href="/faq"
+					href={resolve('/faq')}
 					class="relative flex h-full cursor-pointer items-center text-sm font-medium transition-colors duration-150 {isActive(
 						'/faq'
 					)
@@ -146,7 +146,7 @@
 	</div>
 	<nav class="flex flex-col gap-1 p-3">
 		<a
-			href="/"
+			href={resolve('/')}
 			onclick={() => (mobileOpen = false)}
 			class="cursor-pointer rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 {isActive(
 				'/'
@@ -155,7 +155,7 @@
 				: 'text-neutral-400 hover:bg-white/[0.03] hover:text-foreground'}">Upload</a
 		>
 		<a
-			href="/archive"
+			href={resolve('/archive')}
 			onclick={() => (mobileOpen = false)}
 			class="cursor-pointer rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 {isActive(
 				'/archive'
@@ -164,7 +164,7 @@
 				: 'text-neutral-400 hover:bg-white/[0.03] hover:text-foreground'}">Archive</a
 		>
 		<a
-			href="/faq"
+			href={resolve('/faq')}
 			onclick={() => (mobileOpen = false)}
 			class="cursor-pointer rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 {isActive(
 				'/faq'

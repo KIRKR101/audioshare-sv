@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import * as Accordion from '$lib/components/ui/accordion';
 </script>
 
@@ -32,7 +33,7 @@
 				<Accordion.Content class="px-5 pb-4 text-xs leading-relaxed font-medium text-neutral-400">
 					Navigate to the
 					<a
-						href="/"
+						href={resolve('/')}
 						class="text-neutral-200 underline decoration-white/[0.2] underline-offset-4 transition-colors duration-150 hover:text-white hover:decoration-white/[0.5]"
 						>upload page</a
 					>, then either drag and drop your audio file onto the upload zone, or click to browse your
@@ -56,11 +57,12 @@
 				<Accordion.Content class="px-5 pb-4 text-xs leading-relaxed font-medium text-neutral-400">
 					Yes. You can download any file from its
 					<a
-						href="/archive"
+						href={resolve('/archive')}
 						class="text-neutral-200 underline decoration-white/[0.2] underline-offset-4 transition-colors duration-150 hover:text-white hover:decoration-white/[0.5]"
 						>archive</a
 					>
 					entry, or browse the raw
+					<!-- eslint-disable svelte/no-navigation-without-resolve -->
 					<a
 						href="/audio_files.txt"
 						target="_blank"

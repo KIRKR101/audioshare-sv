@@ -13,6 +13,7 @@ export const load: PageServerLoad = async ({ url }) => {
 
 	const offset = (page - 1) * ITEMS_PER_PAGE;
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const allowedSortColumns: Record<string, any> = {
 		filename: songs.filename,
 		title: songs.title,
@@ -73,14 +74,15 @@ export const load: PageServerLoad = async ({ url }) => {
 			sortBy,
 			sortOrder
 		};
-	} catch (err: any) {
-		console.error('Error loading archive:', err);
+	} catch (err: unknown) {
+		const error = err as { message?: string };
+		console.error('Error loading archive:', error);
 		return {
 			files: [],
 			totalItems: 0,
 			currentPage: 1,
 			totalPages: 0,
-			error: `Failed to load files: ${err.message || 'Unknown error'}.`,
+			error: `Failed to load files: ${error.message || 'Unknown error'}.`,
 			search: '',
 			sortBy: 'uploadDate',
 			sortOrder: 'desc'

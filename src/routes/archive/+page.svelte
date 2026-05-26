@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Search, X, ArrowUp, ArrowDown } from '@lucide/svelte';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 
 	let { data } = $props();
 
@@ -26,13 +28,13 @@
 	}
 
 	function updateQuery(params: Record<string, string | number>) {
-		const sp = new URLSearchParams($page.url.searchParams);
+		const sp = new SvelteURLSearchParams($page.url.searchParams);
 		for (const [key, value] of Object.entries(params)) {
 			if (value === '' || value === undefined) sp.delete(key);
 			else sp.set(key, String(value));
 		}
 		if ('search' in params) sp.set('page', '1');
-		goto(`/archive?${sp.toString()}`);
+		goto(resolve(`/archive?${sp.toString()}`));
 	}
 
 	function handleSearch(e: Event) {
@@ -171,9 +173,9 @@
 
 		<div class="divide-y divide-white/[0.02]">
 			{#if !data.error && data.files.length > 0}
-				{#each data.files as file, index}
+				{#each data.files as file (file.id)}
 					<a
-						href={`/audio/${file.link}`}
+						href={resolve(`/audio/${file.link}`)}
 						class="grid cursor-pointer grid-cols-12 items-center gap-4 px-4 py-3.5 text-left transition-colors duration-150 hover:bg-white/[0.015]"
 					>
 						<div class="col-span-3 min-w-0">
