@@ -19,10 +19,33 @@ export const load: PageServerLoad = async ({ params }) => {
 	try {
 		const content = fs.readFileSync(metadataPath, 'utf-8');
 		const metadata = JSON.parse(content);
+
+		const files = fs.readdirSync(audioDir);
+		const metadataFiles = files.filter((f) => f.endsWith('.metadata.json'));
+		const tracklist = metadataFiles
+			.map((f) => {
+				try {
+					const raw = JSON.parse(fs.readFileSync(path.join(audioDir, f), 'utf-8'));
+					return {
+						fileId: raw.fileId || f.replace('.metadata.json', ''),
+						title: raw.common?.title || null,
+						artist: raw.common?.artist || null,
+						album: raw.common?.album || null,
+						duration: raw.format?.duration || 0,
+						albumArt: raw.albumArt || null,
+						originalName: raw.originalName || ''
+					};
+				} catch {
+					return null;
+				}
+			})
+			.filter((t): t is NonNullable<typeof t> => t != null);
+
 		return {
 			fileMetadata: metadata,
 			fileId: id,
-			fileName: metadata.originalName || 'Unknown File'
+			fileName: metadata.originalName || 'Unknown File',
+			tracklist
 		};
 	} catch {
 		error(404, 'File not found');
